@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">CEPGame</string>
+    <string name="enter">Entrar</string>
+    <string name="createServer">Criar Servidor</string>
+    <string name="cepGame">Cep Game</string>
+    <string name="server_ip">IP do Servidor</string>
+    <string name="porta">Porta</string>
+    <string name="cep">Cep</string>
+    <string name="selecione_seu_personagem">Selecione seu personagem</string>
+    <string name="connect">Conectar</string>
+    <string name="create_server">Criar Servidor</string>
+    <string name="desconectado">Desconectado</string>
+    <string name="ligar_servidor">Ligar Servidor</string>
+    <string-array name="characters_array">
+        <item>Eloi</item>
+        <item>Morlock</item>
+    </string-array>
+</resources>
