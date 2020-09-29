@@ -98,6 +98,7 @@ public class Connect extends AppCompatActivity {
                             result = "close";
                         }
                     }
+                    desconectar();
                     startActivity(intent);
                     finish();
                 } catch (UnknownHostException e) {
@@ -108,5 +109,15 @@ public class Connect extends AppCompatActivity {
             }
         });
         thread.start();
+    }
+
+    private void desconectar() {
+        try {
+            if(socketOutput!=null) {
+                socketOutput.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

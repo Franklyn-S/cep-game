@@ -3,7 +3,6 @@ package com.example.cepgame;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -14,11 +13,19 @@ import android.widget.Toast;
 
 import com.example.cepgame.model.CEP;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutionException;
 
@@ -84,29 +91,22 @@ public class GameScreen extends AppCompatActivity {
         }
         Log.v("PDM", "cep: "+cep);
         if (cep.length() == 8){
-            cep1 = cep.substring(0,2);
+            cep1 = cep.substring(0,3);
             cep2 = cep.substring(3);
         }
         tvCep.setText(cep2);
     }
     @SuppressLint("SetTextI18n")
     public void testCep(View v){
-        String testedCep = edCep.getText().toString().concat(cep2);
+        final String testedCep = edCep.getText().toString().concat(cep2);
         Log.v("PDM", "Cep testado: "+testedCep);
-        try {
-            CEP retorno = new HttpService(testedCep).execute().get();
-            if (retorno != null) {
-                logradouroValue.setText(retorno.getLogradouro());
-                cityValue.setText(retorno.getCidade());
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                getAddressFromCep(testedCep);
             }
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            Toast t = Toast.makeText(GameScreen.this, "CEP não", Toast.LENGTH_LONG);
-            t.show();
-            e.printStackTrace();
-        }
+        });
+        thread.start();
         if (edCep.getText().toString().equals(cep1)){
             Toast t = Toast.makeText(GameScreen.this, "Você acertou!", Toast.LENGTH_LONG);
             t.show();
@@ -116,6 +116,8 @@ public class GameScreen extends AppCompatActivity {
             tentativasValue.setText(Integer.toString(tentativas));
             pontuacao--;
             pontuacaoValue.setText(Integer.toString(pontuacao));
+            Log.v("PDM", "Resposta certa: "+Integer.parseInt(cep1));
+            Log.v("PDM", "Tentativa: "+edCep.getText().toString());
             if (Integer.parseInt(edCep.getText().toString()) > Integer.parseInt(cep1)){
                 statusValue.setText("Maior");
             } else if (Integer.parseInt(edCep.getText().toString()) == Integer.parseInt(cep1)){
@@ -221,6 +223,65 @@ public class GameScreen extends AppCompatActivity {
             e.printStackTrace();
         }
 
+    }
+
+    private JSONObject getAddressFromCep(String cep){
+        StringBuilder resposta = new StringBuilder();
+        if (this.cep != null && this.cep.length() == 8){
+            try {
+                URL url = new URL("https://viacep.com.br/ws/"+cep+"/json/");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(10000);
+                connection.setRequestMethod("GET");
+                connection.setDoInput(true);
+                connection.connect();
+
+                String result[] = new String[1];
+                int responseCode = connection.getResponseCode();
+                Log.v("PDM", "Código de resposta: "+responseCode);
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader br = new BufferedReader(
+                            new InputStreamReader(connection.getInputStream(), "utf-8"));
+                    String responseLine = null;
+                    while ((responseLine = br.readLine()) != null){
+                        resposta.append(responseLine.trim());
+                    }
+                    result[0] = resposta.toString();
+                    Log.v("PDM", "Resultado: "+result[0]);
+                    final JSONObject respostaJSON = new JSONObject(result[0]);
+                    logradouroValue.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                logradouroValue.setText(respostaJSON.getString("logradouro"));
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    cityValue.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                cityValue.setText(respostaJSON.getString("localidade"));
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    return respostaJSON;
+                }
+
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
 }
